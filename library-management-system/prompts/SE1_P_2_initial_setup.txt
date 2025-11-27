@@ -1,0 +1,26 @@
+AI: GitHub Copilot
+Commit: SE1_P_2
+
+پروژه کتابخانه دانشگاه با ساختار Maven ایجاد شد:
+
+- ساختار پکیج‌بندی استاندارد Maven
+- پیکربندی pom.xml با dependencyهای JUnit و Mockito
+- ایجاد پکیج‌های اصلی: model, repository, service, controller, dto, config
+- ایجاد پکیج‌های تست متناظر
+- ایجاد کلاس مدل Book و تست‌های واحد مربوطه
+- آماده برای توسعه بیشتر بر اساس نیازمندی‌های سیستم
+
+جزئیات پیاده‌سازی:
+1. ایجاد پروژه Maven با ساختار استاندارد
+2. افزودن dependencyهای تست (JUnit 5 و Mockito)
+3. ایجاد کلاس Book در پکیج com.university.library.model
+4. ایجاد کلاس BookTest با ۴ تست واحد
+5. پیکربندی compiler plugin برای Java 11
+6. ایجاد پوشه prompts برای مستندات
+
+تست‌های پیاده‌سازی شده:
+- testBookCreation: تست ایجاد شی Book
+- testSettersAndGetters: تست متدهای setter و getter
+- testToString: تست متد toString
+- testDefaultConstructor: تست constructor پیش‌فرض
+
