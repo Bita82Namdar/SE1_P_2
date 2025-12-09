@@ -1,0 +1,26 @@
+// InvalidStudentStatusException.java
+package com.university.library.exception;
+
+public class InvalidStudentStatusException extends RuntimeException {
+    public InvalidStudentStatusException(String message) {
+        super(message);
+    }
+}
+
+// BookNotAvailableException.java
+package com.university.library.exception;
+
+public class BookNotAvailableException extends RuntimeException {
+    public BookNotAvailableException(String message) {
+        super(message);
+    }
+}
+
+// InvalidRequestStatusException.java
+package com.university.library.exception;
+
+public class InvalidRequestStatusException extends RuntimeException {
+    public InvalidRequestStatusException(String message) {
+        super(message);
+    }
+}

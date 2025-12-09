@@ -34,8 +34,10 @@ public class UserRepository {
         users.add(new Employee("E2", "emp2", "emp123", "EMP002", "کارمند دو"));
     }
 
-    public void addUser(User user) {
+    // متد save (همان addUser با نام جدید)
+    public User save(User user) {
         users.add(user);
+        return user;
     }
 
     public Optional<User> findByUsername(String username) {
@@ -50,11 +52,52 @@ public class UserRepository {
                 .findFirst();
     }
 
-    public List<Student> getAllStudents() {
+    public List<User> findAll() {
+        return new ArrayList<>(users);
+    }
+
+    // متدهای مخصوص دانشجو
+    public Optional<Student> findStudentById(String studentId) {
+        return users.stream()
+                .filter(user -> user instanceof Student && user.getUserId().equals(studentId))
+                .map(user -> (Student) user)
+                .findFirst();
+    }
+
+    public boolean isStudentActive(String studentId) {
+        return users.stream()
+                .filter(user -> user instanceof Student && user.getUserId().equals(studentId))
+                .map(user -> (Student) user)
+                .findFirst()
+                .map(Student::isActive)
+                .orElse(false);
+    }
+
+    public List<Student> findAllStudents() {
         return users.stream()
                 .filter(user -> user instanceof Student)
                 .map(user -> (Student) user)
                 .collect(Collectors.toList());
+    }
+
+    // متدهای اضافی
+    public void delete(String userId) {
+        users.removeIf(user -> user.getUserId().equals(userId));
+    }
+
+    public List<User> findByType(String userType) {
+        return users.stream()
+                .filter(user -> user.getUserType().equals(userType))
+                .collect(Collectors.toList());
+    }
+
+    // متدهای موجود قبلی با نام‌های جدید
+    public void addUser(User user) {
+        save(user);
+    }
+
+    public List<Student> getAllStudents() {
+        return findAllStudents();
     }
 
     public List<Employee> getAllEmployees() {

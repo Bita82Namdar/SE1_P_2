@@ -9,78 +9,54 @@ import java.util.stream.Collectors;
 public class BookRepository {
     private List<Book> books;
     private static BookRepository instance;
-
+    
     private BookRepository() {
         this.books = new ArrayList<>();
         initializeSampleData();
     }
-
+    
     public static synchronized BookRepository getInstance() {
         if (instance == null) {
             instance = new BookRepository();
         }
         return instance;
     }
-
+    
     private void initializeSampleData() {
-        books.add(new Book("B1", "طراحی نرم‌افزار", "احمد رضایی", "978-964-1234-56-7", 2020, "نشر دانشگاهی", 5));
-        books.add(new Book("B2", "پایگاه داده", "مریم کریمی", "978-964-1234-57-4", 2019, "نشر فنی", 3));
-        books.add(new Book("B3", "هوش مصنوعی", "رضا محمدی", "978-964-1234-58-1", 2021, "نشر علمی", 4));
+        books.add(new Book("B1", "طراحی نرم‌افزار", "ایرج صادقی", 2020));
+        books.add(new Book("B2", "پایگاه داده", "مریم کریمی", 2019));
+        books.add(new Book("B3", "الگوریتم‌ها", "رضا محمودی", 2021));
     }
-
-    public void addBook(Book book) {
+    
+    public Book save(Book book) {
+        books.removeIf(b -> b.getBookId().equals(book.getBookId()));
         books.add(book);
+        return book;
     }
-
+    
     public Optional<Book> findById(String bookId) {
         return books.stream()
                 .filter(book -> book.getBookId().equals(bookId))
                 .findFirst();
     }
-
+    
+    public List<Book> findByTitle(String title) {
+        return books.stream()
+                .filter(book -> book.getTitle().contains(title))
+                .collect(Collectors.toList());
+    }
+    
+    public List<Book> findByAuthor(String author) {
+        return books.stream()
+                .filter(book -> book.getAuthor().contains(author))
+                .collect(Collectors.toList());
+    }
+    
     public List<Book> findAll() {
         return new ArrayList<>(books);
     }
-
-    public List<Book> searchByTitle(String title) {
-        return books.stream()
-                .filter(book -> book.getTitle().toLowerCase().contains(title.toLowerCase()))
-                .collect(Collectors.toList());
-    }
-
-    public List<Book> searchByAuthor(String author) {
-        return books.stream()
-                .filter(book -> book.getAuthor().toLowerCase().contains(author.toLowerCase()))
-                .collect(Collectors.toList());
-    }
-
-    public List<Book> searchByPublicationYear(int year) {
-        return books.stream()
-                .filter(book -> book.getPublicationYear() == year)
-                .collect(Collectors.toList());
-    }
-
-    public List<Book> advancedSearch(String title, String author, Integer year) {
-        return books.stream()
-                .filter(book -> 
-                    (title == null || book.getTitle().toLowerCase().contains(title.toLowerCase())) &&
-                    (author == null || book.getAuthor().toLowerCase().contains(author.toLowerCase())) &&
-                    (year == null || book.getPublicationYear() == year)
-                )
-                .collect(Collectors.toList());
-    }
-
-    public boolean updateBook(Book updatedBook) {
-        for (int i = 0; i < books.size(); i++) {
-            if (books.get(i).getBookId().equals(updatedBook.getBookId())) {
-                books.set(i, updatedBook);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public int getTotalBooksCount() {
-        return books.size();
+    
+    public void delete(String bookId) {
+        books.removeIf(book -> book.getBookId().equals(bookId));
     }
 }

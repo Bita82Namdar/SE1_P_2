@@ -1,146 +1,139 @@
 package com.university.library.service;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.university.library.model.Loan;
 import com.university.library.model.LoanStatus;
-import com.university.library.model.Book;
-import com.university.library.model.Student;
 import com.university.library.repository.LoanRepository;
 import com.university.library.repository.BookRepository;
 import com.university.library.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
 
+@ExtendWith(MockitoExtension.class)
 public class LoanServiceTest {
+    
+    @Mock private LoanRepository loanRepository;
+    @Mock private BookRepository bookRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private StudentService studentService;
+    @Mock private BookService bookService;
+    
     private LoanService loanService;
-    private LoanRepository loanRepository;
-    private BookRepository bookRepository;
-    private UserRepository userRepository;
-
+    
     @BeforeEach
     void setUp() {
-        loanRepository = LoanRepository.getInstance();
-        bookRepository = BookRepository.getInstance();
-        userRepository = UserRepository.getInstance();
-        
-        // پاک کردن داده‌های تست
-        loanRepository.getAllLoans().clear();
-        loanService = new LoanService();
+        loanService = new LoanService(loanRepository, bookRepository, userRepository, 
+                                     studentService, bookService);
     }
-
+    
     @Test
-    void testRequestLoan_Success() {
-        // اضافه کردن کتاب و دانشجو برای تست
-        bookRepository.addBook(new Book("B_TEST", "Test Book", "Test Author", "123-456789", 2023, "Test Pub", 2));
-        userRepository.addUser(new Student("S_TEST", "teststudent", "password", "Test Student", "ST_TEST"));
+    void testCreateBorrowRequest_ActiveStudent_AvailableBook() {
+        // سناریو 1-3
+        // Arrange
+        String loanId = "L001";
+        String studentId = "S001";
+        String bookId = "B001";
+        LocalDate startDate = LocalDate.now();
+        LocalDate endDate = startDate.plusDays(14);
         
-        LocalDate startDate = LocalDate.now().plusDays(1);
-        LocalDate endDate = LocalDate.now().plusDays(15);
+        when(studentService.isStudentActive(studentId)).thenReturn(true);
+        when(bookService.isBookAvailable(bookId)).thenReturn(true);
         
-        Optional<Loan> loan = loanService.requestLoan("B_TEST", "S_TEST", startDate, endDate);
+        // Act
+        Loan result = loanService.createBorrowRequest(loanId, studentId, bookId, startDate, endDate);
         
-        assertTrue(loan.isPresent(), "Loan should be created successfully");
-        assertEquals(LoanStatus.REQUESTED, loan.get().getStatus());
-        assertEquals("B_TEST", loan.get().getBookId());
-        assertEquals("S_TEST", loan.get().getStudentId());
+        // Assert
+        assertNotNull(result);
+        assertEquals(LoanStatus.REQUESTED, result.getStatus());
+        assertEquals(studentId, result.getStudentId());
+        assertEquals(bookId, result.getBookId());
     }
-
+    
     @Test
-    void testRequestLoan_BookNotAvailable() {
-        bookRepository.addBook(new Book("B_UNAVAILABLE", "Unavailable Book", "Author", "111-111111", 2023, "Pub", 0));
-        userRepository.addUser(new Student("S1", "student1", "pass", "Student 1", "ST1"));
+    void testCreateBorrowRequest_InactiveStudent_ThrowsException() {
+        // سناریو 3-2
+        // Arrange
+        String loanId = "L002";
+        String studentId = "S002"; // غیرفعال
+        String bookId = "B002";
         
-        Optional<Loan> loan = loanService.requestLoan("B_UNAVAILABLE", "S1", 
-                LocalDate.now().plusDays(1), LocalDate.now().plusDays(15));
+        when(studentService.isStudentActive(studentId)).thenReturn(false);
         
-        assertFalse(loan.isPresent(), "Loan should not be created for unavailable book");
+        // Act & Assert
+        Exception exception = assertThrows(RuntimeException.class, () -> {
+            loanService.createBorrowRequest(loanId, studentId, bookId, 
+                                          LocalDate.now(), LocalDate.now().plusDays(7));
+        });
+        
+        assertTrue(exception.getMessage().contains("دانشجو غیرفعال است"));
     }
-
+    
     @Test
-    void testApproveLoan_Success() {
-        // ایجاد وام تستی
-        bookRepository.addBook(new Book("B_APPROVE", "Approve Book", "Author", "222-222222", 2023, "Pub", 3));
-        userRepository.addUser(new Student("S_APPROVE", "approvestudent", "pass", "Approve Student", "ST_APPROVE"));
+    void testCreateBorrowRequest_UnavailableBook_ThrowsException() {
+        // سناریو 3-3
+        // Arrange
+        String loanId = "L003";
+        String studentId = "S003";
+        String bookId = "B003"; // کتاب امانت داده شده
         
-        LocalDate startDate = LocalDate.now().plusDays(1);
-        LocalDate endDate = LocalDate.now().plusDays(15);
+        when(studentService.isStudentActive(studentId)).thenReturn(true);
+        when(bookService.isBookAvailable(bookId)).thenReturn(false);
         
-        Optional<Loan> loan = loanService.requestLoan("B_APPROVE", "S_APPROVE", startDate, endDate);
-        assertTrue(loan.isPresent());
+        // Act & Assert
+        Exception exception = assertThrows(RuntimeException.class, () -> {
+            loanService.createBorrowRequest(loanId, studentId, bookId, 
+                                          LocalDate.now(), LocalDate.now().plusDays(7));
+        });
         
-        boolean approvalResult = loanService.approveLoan(loan.get().getLoanId(), "E1");
-        assertTrue(approvalResult, "Loan should be approved successfully");
-        
-        Optional<Loan> approvedLoan = loanRepository.findById(loan.get().getLoanId());
-        assertTrue(approvedLoan.isPresent());
-        assertEquals(LoanStatus.BORROWED, approvedLoan.get().getStatus());
-        assertEquals("E1", approvedLoan.get().getEmployeeId());
+        assertTrue(exception.getMessage().contains("کتاب موجود نیست"));
     }
-
+    
     @Test
-    void testReturnLoan_Success() {
-        bookRepository.addBook(new Book("B_RETURN", "Return Book", "Author", "333-333333", 2023, "Pub", 2));
-        userRepository.addUser(new Student("S_RETURN", "returnstudent", "pass", "Return Student", "ST_RETURN"));
+    void testApproveBorrowRequest_ValidRequest() {
+        // سناریو 3-4
+        // Arrange
+        String loanId = "L004";
+        String employeeId = "E001";
         
-        LocalDate startDate = LocalDate.now().plusDays(1);
-        LocalDate endDate = LocalDate.now().plusDays(15);
+        Loan pendingLoan = new Loan(loanId, "S004", "B004", null, 
+                                   LocalDate.now(), LocalDate.now().plusDays(7));
         
-        Optional<Loan> loan = loanService.requestLoan("B_RETURN", "S_RETURN", startDate, endDate);
-        assertTrue(loan.isPresent());
+        when(loanRepository.findById(loanId)).thenReturn(java.util.Optional.of(pendingLoan));
+        when(bookService.isBookAvailable("B004")).thenReturn(true);
         
-        loanService.approveLoan(loan.get().getLoanId(), "E1");
+        // Act
+        Loan result = loanService.approveBorrowRequest(loanId, employeeId);
         
-        boolean returnResult = loanService.returnLoan(loan.get().getLoanId());
-        assertTrue(returnResult, "Loan should be returned successfully");
-        
-        Optional<Loan> returnedLoan = loanRepository.findById(loan.get().getLoanId());
-        assertTrue(returnedLoan.isPresent());
-        assertEquals(LoanStatus.RETURNED, returnedLoan.get().getStatus());
-        assertNotNull(returnedLoan.get().getActualReturnDate());
+        // Assert
+        assertEquals(LoanStatus.APPROVED, result.getStatus());
+        assertEquals(employeeId, result.getEmployeeId());
+        verify(bookService).markBookAsBorrowed("B004");
     }
-
+    
     @Test
-    void testGetStudentLoanHistory() {
-        bookRepository.addBook(new Book("B_HISTORY", "History Book", "Author", "444-444444", 2023, "Pub", 2));
-        userRepository.addUser(new Student("S_HISTORY", "historystudent", "pass", "History Student", "ST_HISTORY"));
+    void testApproveBorrowRequest_AlreadyApproved_ThrowsException() {
+        // سناریو 3-5
+        // Arrange
+        String loanId = "L005";
+        String employeeId = "E001";
         
-        LocalDate startDate = LocalDate.now().plusDays(1);
-        LocalDate endDate = LocalDate.now().plusDays(15);
+        Loan approvedLoan = new Loan(loanId, "S005", "B005", employeeId, 
+                                    LocalDate.now(), LocalDate.now().plusDays(7));
+        approvedLoan.approve(employeeId); // وضعیت APPROVED
         
-        loanService.requestLoan("B_HISTORY", "S_HISTORY", startDate, endDate);
+        when(loanRepository.findById(loanId)).thenReturn(java.util.Optional.of(approvedLoan));
         
-        List<Loan> history = loanService.getStudentLoanHistory("S_HISTORY");
-        assertFalse(history.isEmpty(), "Student should have loan history");
-        assertEquals("S_HISTORY", history.get(0).getStudentId());
-    }
-
-    @Test
-    void testGetPendingLoans() {
-        bookRepository.addBook(new Book("B_PENDING", "Pending Book", "Author", "555-555555", 2023, "Pub", 2));
-        userRepository.addUser(new Student("S_PENDING", "pendingstudent", "pass", "Pending Student", "ST_PENDING"));
+        // Act & Assert
+        Exception exception = assertThrows(RuntimeException.class, () -> {
+            loanService.approveBorrowRequest(loanId, employeeId);
+        });
         
-        loanService.requestLoan("B_PENDING", "S_PENDING", 
-                LocalDate.now().plusDays(1), LocalDate.now().plusDays(15));
-        
-        List<Loan> pendingLoans = loanService.getPendingLoans();
-        assertFalse(pendingLoans.isEmpty(), "There should be pending loans");
-    }
-
-    @Test
-    void testLoanStatistics() {
-        bookRepository.addBook(new Book("B_STATS", "Stats Book", "Author", "666-666666", 2023, "Pub", 2));
-        userRepository.addUser(new Student("S_STATS", "statsstudent", "pass", "Stats Student", "ST_STATS"));
-        
-        // ایجاد چند وام برای آمار
-        loanService.requestLoan("B_STATS", "S_STATS", 
-                LocalDate.now().plusDays(1), LocalDate.now().plusDays(15));
-        
-        LoanStatistics stats = loanService.getStudentLoanStatistics("S_STATS");
-        assertNotNull(stats, "Statistics should not be null");
-        assertEquals(1, stats.getTotalLoans());
+        assertTrue(exception.getMessage().contains("این درخواست قبلاً تایید شده است"));
     }
 }

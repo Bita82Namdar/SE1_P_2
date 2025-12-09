@@ -3,98 +3,127 @@ package com.university.library.repository;
 import com.university.library.model.User;
 import com.university.library.model.Student;
 import com.university.library.model.Employee;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class UserRepository {
+    private List<User> users;
     private static UserRepository instance;
-    private Map<String, User> users;
-    
+
     private UserRepository() {
-        this.users = new HashMap<>();
+        this.users = new ArrayList<>();
+        // Add some sample data
         initializeSampleData();
     }
-    
-    public static UserRepository getInstance() {
+
+    public static synchronized UserRepository getInstance() {
         if (instance == null) {
             instance = new UserRepository();
         }
         return instance;
     }
-    
+
     private void initializeSampleData() {
-        // اضافه کردن کاربران نمونه
-        Student student1 = new Student("S1", "student1", "pass123", "John Doe", "ST001");
-        student1.setEmail("john@university.com");
+        users.add(new Student("S1", "student1", "pass123", "ST001", "علی محمدی", "ali@university.com"));
+        users.add(new Student("S2", "student2", "pass123", "ST002", "فاطمه احمدی", "fatemeh@university.com"));
         
-        Student student2 = new Student("S2", "student2", "pass456", "Jane Smith", "ST002");
-        student2.setEmail("jane@university.com");
-        
-        Employee employee1 = new Employee("E1", "employee1", "emp123", "Ali Rezaei", "EMP001");
-        employee1.setEmail("ali@university.com");
-        
-        users.put(student1.getUserId(), student1);
-        users.put(student2.getUserId(), student2);
-        users.put(employee1.getUserId(), employee1);
+        users.add(new Employee("E1", "emp1", "emp123", "EMP001", "کارمند یک"));
+        users.add(new Employee("E2", "emp2", "emp123", "EMP002", "کارمند دو"));
     }
-    
+
+    public void addUser(User user) {
+        users.add(user);
+    }
+
     public Optional<User> findByUsername(String username) {
-        return users.values().stream()
+        return users.stream()
                 .filter(user -> user.getUsername().equals(username))
                 .findFirst();
     }
-    
-    public boolean addUser(User user) {
-        if (users.containsKey(user.getUserId()) || findByUsername(user.getUsername()).isPresent()) {
-            return false;
-        }
-        users.put(user.getUserId(), user);
-        return true;
+
+    public Optional<User> findById(String userId) {
+        return users.stream()
+                .filter(user -> user.getUserId().equals(userId))
+                .findFirst();
     }
-    
-    public boolean updateUser(User user) {
-        if (!users.containsKey(user.getUserId())) {
-            return false;
-        }
-        users.put(user.getUserId(), user);
-        return true;
-    }
-    
+
     public List<User> findAll() {
-        return new ArrayList<>(users.values());
+        return new ArrayList<>(users);
     }
+
+    // ========== متدهای جدید برای StudentService ==========
+    
+    /**
+     * پیدا کردن دانشجو بر اساس studentId
+     */
+    public Optional<Student> findStudentById(String studentId) {
+        return users.stream()
+                .filter(user -> user instanceof Student)
+                .map(user -> (Student) user)
+                .filter(student -> student.getStudentId().equals(studentId))
+                .findFirst();
+    }
+    
+    /**
+     * پیدا کردن دانشجو بر اساس userId
+     */
+    public Optional<Student> findStudentByUserId(String userId) {
+        return users.stream()
+                .filter(user -> user instanceof Student && user.getUserId().equals(userId))
+                .map(user -> (Student) user)
+                .findFirst();
+    }
+    
+    /**
+     * بررسی فعال بودن دانشجو
+     */
+    public boolean isStudentActive(String studentId) {
+        Optional<Student> studentOptional = findStudentById(studentId);
+        return studentOptional.isPresent() && studentOptional.get().isActive();
+    }
+    
+    // ========== متدهای موجود قبلی ==========
     
     public List<Student> getAllStudents() {
-        return users.values().stream()
+        return users.stream()
                 .filter(user -> user instanceof Student)
                 .map(user -> (Student) user)
                 .collect(Collectors.toList());
     }
-    
+
     public List<Employee> getAllEmployees() {
-        return users.values().stream()
+        return users.stream()
                 .filter(user -> user instanceof Employee)
                 .map(user -> (Employee) user)
                 .collect(Collectors.toList());
     }
-    
-    public Optional<User> findById(String userId) {
-        return Optional.ofNullable(users.get(userId));
+
+    public boolean updateUser(User updatedUser) {
+        for (int i = 0; i < users.size(); i++) {
+            if (users.get(i).getUserId().equals(updatedUser.getUserId())) {
+                users.set(i, updatedUser);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public int getTotalStudentsCount() {
+        return (int) users.stream()
+                .filter(user -> user instanceof Student)
+                .count();
     }
     
-    public boolean removeUser(String userId) {
-        return users.remove(userId) != null;
+    // متدهای save و delete برای سازگاری
+    public User save(User user) {
+        addUser(user);
+        return user;
     }
     
-    // اضافه کردن متد clear برای تست
-    public void clear() {
-        users.clear();
-        // بعد از clear، داده‌های نمونه را دوباره اضافه نکنیم تا تست‌ها تمیز باشند
-    }
-    
-    // متد برای ریست کردن و اضافه کردن داده‌های نمونه
-    public void resetWithSampleData() {
-        users.clear();
-        initializeSampleData();
+    public void delete(String userId) {
+        users.removeIf(user -> user.getUserId().equals(userId));
     }
 }

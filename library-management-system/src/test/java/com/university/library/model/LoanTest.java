@@ -1,79 +1,42 @@
 package com.university.library.model;
 
 import org.junit.jupiter.api.Test;
-import java.time.LocalDate;
 import static org.junit.jupiter.api.Assertions.*;
+import java.time.LocalDate;
 
 public class LoanTest {
-
+    
     @Test
-    public void testLoanCreation() {
-        LocalDate startDate = LocalDate.now().plusDays(1);
-        LocalDate endDate = LocalDate.now().plusDays(15);
+    void testCreateBorrowRequest_ReturnsLoanWithRequestedStatus() {
+        // سناریو 1-3 در سطح مدل
+        Loan loan = Loan.createBorrowRequest("L001", "S001", "B001", 
+                                           LocalDate.now(), LocalDate.now().plusDays(7));
         
-        Loan loan = new Loan("L1", "B1", "S1", "E1", LocalDate.now(), startDate, endDate);
-        
-        assertEquals("L1", loan.getLoanId());
-        assertEquals("B1", loan.getBookId());
         assertEquals(LoanStatus.REQUESTED, loan.getStatus());
-        assertFalse(loan.isOverdue());
-        assertEquals(0, loan.getOverdueDays());
+        assertTrue(loan.isPending());
     }
-
+    
     @Test
-    public void testOverdueLoan() {
-        LocalDate startDate = LocalDate.now().minusDays(20);
-        LocalDate endDate = LocalDate.now().minusDays(5);
+    void testApprove_WhenAlreadyApproved_ThrowsException() {
+        // سناریو 3-5 در سطح مدل
+        Loan loan = new Loan("L002", "S002", "B002", "E001", 
+                           LocalDate.now(), LocalDate.now().plusDays(7));
+        loan.approve("E001"); // تایید اولیه
         
-        Loan loan = new Loan("L1", "B1", "S1", "E1", LocalDate.now().minusDays(25), startDate, endDate);
-        
-        assertTrue(loan.isOverdue());
-        assertTrue(loan.getOverdueDays() > 0);
+        // تلاش برای تایید مجدد باید Exception بدهد
+        assertThrows(IllegalStateException.class, () -> {
+            loan.approve("E002");
+        });
     }
-
+    
     @Test
-    public void testLoanStatusTransition() {
-        LocalDate startDate = LocalDate.now().plusDays(1);
-        LocalDate endDate = LocalDate.now().plusDays(15);
+    void testMarkAsBorrowed_WhenNotApproved_ThrowsException() {
+        Loan loan = new Loan("L003", "S003", "B003", null, 
+                           LocalDate.now(), LocalDate.now().plusDays(7));
+        // هنوز تایید نشده (REQUESTED)
         
-        Loan loan = new Loan("L1", "B1", "S1", "E1", LocalDate.now(), startDate, endDate);
-        
-        // Test initial status
-        assertEquals(LoanStatus.REQUESTED, loan.getStatus());
-        
-        // Test status change (assuming setStatus method exists)
-        loan.setStatus(LoanStatus.APPROVED);
-        assertEquals(LoanStatus.APPROVED, loan.getStatus());
-        
-        loan.setStatus(LoanStatus.BORROWED);
-        assertEquals(LoanStatus.BORROWED, loan.getStatus());
-        
-        loan.setStatus(LoanStatus.RETURNED);
-        assertEquals(LoanStatus.RETURNED, loan.getStatus());
-    }
-
-    @Test
-    public void testLoanDates() {
-        LocalDate requestDate = LocalDate.now().minusDays(5);
-        LocalDate startDate = LocalDate.now().plusDays(1);
-        LocalDate endDate = LocalDate.now().plusDays(15);
-        
-        Loan loan = new Loan("L1", "B1", "S1", "E1", requestDate, startDate, endDate);
-        
-        assertEquals(requestDate, loan.getRequestDate());
-        assertEquals(startDate, loan.getStartDate());
-        assertEquals(endDate, loan.getEndDate());
-        assertNull(loan.getActualReturnDate()); // Should be null initially
-    }
-
-    @Test
-    public void testNotOverdueLoan() {
-        LocalDate startDate = LocalDate.now().minusDays(5);
-        LocalDate endDate = LocalDate.now().plusDays(10);
-        
-        Loan loan = new Loan("L1", "B1", "S1", "E1", LocalDate.now().minusDays(10), startDate, endDate);
-        
-        assertFalse(loan.isOverdue());
-        assertEquals(0, loan.getOverdueDays());
+        assertThrows(IllegalStateException.class, () -> {
+            loan.markAsBorrowed();
+        });
     }
 }

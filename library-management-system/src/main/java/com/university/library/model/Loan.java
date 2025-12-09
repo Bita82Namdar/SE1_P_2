@@ -23,7 +23,7 @@ public class Loan {
         this.requestDate = LocalDate.now();
         this.startDate = startDate;
         this.endDate = endDate;
-        this.status = LoanStatus.REQUESTED;
+        this.status = LoanStatus.REQUESTED;  // این همان PENDING است
         this.isReturned = false;
     }
 
@@ -55,7 +55,36 @@ public class Loan {
         this.isReturned = (status == LoanStatus.RETURNED);
     }
 
-    // متدهای کمکی
+    // ========== متدهای جدید برای سناریوها ==========
+    
+    // سناریو 1-3: ایجاد درخواست امانت
+    public static Loan createBorrowRequest(String loanId, String studentId, String bookId,
+                                          LocalDate startDate, LocalDate endDate) {
+        // این constructor درخواست با وضعیت REQUESTED ایجاد می‌کند
+        return new Loan(loanId, studentId, bookId, null, startDate, endDate);
+    }
+    
+    // سناریو 3-4: تایید درخواست امانت
+    public void approve(String employeeId) {
+        // بررسی سناریو 3-5: اگر قبلاً تایید شده باشد
+        if (this.status == LoanStatus.APPROVED || this.status == LoanStatus.BORROWED) {
+            throw new IllegalStateException("این درخواست قبلاً تایید شده است");
+        }
+        
+        // بررسی سناریو 3-3: (در Service بررسی می‌شود)
+        this.employeeId = employeeId;
+        this.status = LoanStatus.APPROVED;
+    }
+    
+    // متد برای تحویل کتاب (تبدیل APPROVED به BORROWED)
+    public void markAsBorrowed() {
+        if (this.status != LoanStatus.APPROVED) {
+            throw new IllegalStateException("فقط درخواست‌های تایید شده قابل تحویل هستند");
+        }
+        this.status = LoanStatus.BORROWED;
+    }
+    
+    // ========== متدهای کمکی موجود ==========
     public boolean isOverdue() {
         return !isReturned && LocalDate.now().isAfter(endDate);
     }
@@ -63,11 +92,6 @@ public class Loan {
     public long getDaysOverdue() {
         if (!isOverdue()) return 0;
         return LocalDate.now().toEpochDay() - endDate.toEpochDay();
-    }
-
-    public void approve(String employeeId) {
-        this.employeeId = employeeId;
-        this.status = LoanStatus.APPROVED;
     }
 
     public void borrow() {
@@ -88,6 +112,25 @@ public class Loan {
 
     public void reject() {
         this.status = LoanStatus.REJECTED;
+    }
+    
+    // متدهای کمکی برای بررسی وضعیت‌ها
+    public boolean isPending() {
+        return this.status == LoanStatus.REQUESTED;
+    }
+    
+    public boolean isApproved() {
+        return this.status == LoanStatus.APPROVED;
+    }
+    
+    public boolean isBorrowed() {
+        return this.status == LoanStatus.BORROWED;
+    }
+    
+    public boolean isActive() {
+        return this.status == LoanStatus.APPROVED || 
+               this.status == LoanStatus.BORROWED || 
+               this.status == LoanStatus.OVERDUE;
     }
 
     @Override
