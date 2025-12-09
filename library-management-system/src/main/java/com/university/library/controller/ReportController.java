@@ -6,6 +6,7 @@ import com.university.library.service.LoanService;
 import com.university.library.service.StudentService;
 import com.university.library.service.BookService;
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * کنترلر مدیریت گزارش‌های کتابخانه
@@ -38,20 +39,6 @@ public class ReportController {
     // ========== گزارش‌های دانشجو ==========
     
     /**
-     * سناریو 3-6: مشاهده گزارش تاریخچه امانات یک دانشجو
-     * @param studentId شناسه دانشجو
-     * @return گزارش کامل دانشجو
-     */
-    public StudentLoanHistory getStudentLoanHistory(String studentId) {
-        // بررسی وجود دانشجو
-        if (studentService.getStudentById(studentId) == null) {
-            throw new IllegalArgumentException("دانشجو با شناسه " + studentId + " یافت نشد");
-        }
-        
-        return statisticsService.getStudentLoanHistory(studentId);
-    }
-    
-    /**
      * سناریو 3-6 و 4-1: تولید گزارش آماری برای یک دانشجو
      * @param studentId شناسه دانشجو
      * @return گزارش آماری دانشجو
@@ -73,14 +60,6 @@ public class ReportController {
      */
     public int getRegisteredStudentsCount() {
         return studentService.getTotalStudentsCount();
-    }
-    
-    /**
-     * سناریو 2-3: مشاهده اطلاعات آماری ساده
-     * @return آمارهای ساده کتابخانه
-     */
-    public GuestStatistics getGuestStatistics() {
-        return statisticsService.generateGuestStatistics();
     }
     
     /**
@@ -130,44 +109,11 @@ public class ReportController {
     // ========== گزارش‌های مدیر ==========
     
     /**
-     * سناریو 4-2: مشاهده عملکرد کارمند
-     * @return لیست گزارش عملکرد کارمندان
+     * سناریو 4-2: آمار کلی کتابخانه
+     * @return آمار کلی کتابخانه
      */
-    public List<EmployeePerformanceReport> getEmployeePerformanceReports() {
-        return statisticsService.generateEmployeePerformanceReport();
-    }
-    
-    /**
-     * سناریو 4-3: مشاهده اطلاعات آماری امانات کتاب
-     * @return گزارش آماری امانات
-     */
-    public LoanStatisticsReport getLoanStatisticsReport() {
-        return statisticsService.generateLoanStatisticsReport();
-    }
-    
-    /**
-     * سناریو 4-4: مشاهده اطلاعات آماری دانشجویان
-     * @return گزارش جامع دانشجویان
-     */
-    public StudentStatisticsReport getStudentStatisticsReport() {
-        int totalStudents = studentService.getTotalStudentsCount();
-        int activeStudents = studentService.getActiveStudentsCount();
-        int inactiveStudents = studentService.getInactiveStudentsCount();
-        
-        // محاسبه میانگین امانت‌ها به ازای هر دانشجو
-        double averageLoansPerStudent = totalStudents > 0 ? 
-            (double) getTotalLoansCount() / totalStudents : 0.0;
-        
-        // دریافت ۱۰ دانشجوی با بیشترین تاخیر
-        List<StudentDelayReport> topDelayedStudents = statisticsService.getTop10StudentsWithMostDelays();
-        
-        return new StudentStatisticsReport(
-            totalStudents,
-            activeStudents,
-            inactiveStudents,
-            averageLoansPerStudent,
-            topDelayedStudents
-        );
+    public LibraryStats getLibraryStatistics() {
+        return statisticsService.generateLibraryStats();
     }
     
     /**
@@ -175,15 +121,28 @@ public class ReportController {
      * @return لیست دانشجویان با بیشترین تاخیر
      */
     public List<StudentDelayReport> getTop10DelayedStudents() {
-        return statisticsService.getTop10StudentsWithMostDelays();
-    }
-    
-    /**
-     * سناریو 4-2: آمار کلی کتابخانه
-     * @return آمار کلی کتابخانه
-     */
-    public LibraryStats getLibraryStatistics() {
-        return statisticsService.generateLibraryStats();
+        // پیاده‌سازی ساده
+        List<StudentReport> allStudentReports = new ArrayList<>();
+        List<String> allStudentIds = studentService.getAllStudentIds();
+        
+        List<StudentDelayReport> result = new ArrayList<>();
+        
+        for (String studentId : allStudentIds) {
+            StudentReport report = getStudentReport(studentId);
+            if (report.getDelayedLoansCount() > 0) {
+                result.add(new StudentDelayReport(
+                    studentId,
+                    report.getDelayedLoansCount(),
+                    report.getNotReturnedCount()
+                ));
+            }
+        }
+        
+        // مرتب‌سازی بر اساس بیشترین تاخیر
+        result.sort((a, b) -> b.getDelayCount() - a.getDelayCount());
+        
+        // برگرداندن ۱۰ مورد اول
+        return result.size() > 10 ? result.subList(0, 10) : result;
     }
     
     /**
@@ -220,23 +179,6 @@ public class ReportController {
     // ========== گزارش‌های عمومی ==========
     
     /**
-     * گزارش پرفروش‌ترین کتاب‌ها
-     * @param limit تعداد کتاب‌های برتر
-     * @return لیست کتاب‌های پرفروش
-     */
-    public List<PopularBookReport> getMostPopularBooks(int limit) {
-        return statisticsService.getMostPopularBooks(limit);
-    }
-    
-    /**
-     * گزارش امانت‌های فعال
-     * @return لیست امانت‌های فعال
-     */
-    public List<ActiveLoanReport> getActiveLoansReport() {
-        return statisticsService.getActiveLoansReport();
-    }
-    
-    /**
      * گزارش کتاب‌های موجود
      * @return لیست کتاب‌های موجود
      */
@@ -266,5 +208,58 @@ public class ReportController {
      */
     public List<Student> getInactiveStudents() {
         return studentService.getInactiveStudents();
+    }
+    
+    /**
+     * گزارش آماری ساده برای مهمانان
+     * @return رشته حاوی آمارها
+     */
+    public String getSimpleGuestStatistics() {
+        int students = getRegisteredStudentsCount();
+        int books = getTotalBooksCount();
+        int loans = getTotalLoansCount();
+        int currentLoans = getCurrentLoansCount();
+        
+        return String.format(
+            "آمار کتابخانه: %d دانشجو، %d کتاب، %d امانت کل، %d امانت جاری",
+            students, books, loans, currentLoans
+        );
+    }
+    
+    /**
+     * گزارش عملکرد کارمندان (ساده)
+     * @return رشته حاوی آمار عملکرد
+     */
+    public String getSimpleEmployeePerformance() {
+        // پیاده‌سازی ساده
+        int totalBooks = bookService.getTotalBooksCount();
+        int totalLoans = loanService.getAllLoans().size();
+        
+        return String.format(
+            "عملکرد کلی: %d کتاب ثبت شده، %d امانت پردازش شده",
+            totalBooks, totalLoans
+        );
+    }
+    
+    /**
+     * گزارش امانت‌های فعال (ساده)
+     * @return لیست رشته‌ای از امانت‌های فعال
+     */
+    public List<String> getSimpleActiveLoansReport() {
+        List<Loan> allLoans = loanService.getAllLoans();
+        List<String> activeLoans = new ArrayList<>();
+        
+        for (Loan loan : allLoans) {
+            if (loan.isBorrowed() && !loan.isReturned()) {
+                String status = loan.getEndDate().isBefore(java.time.LocalDate.now()) ?
+                    "تأخیر دارد" : "فعال";
+                activeLoans.add(String.format(
+                    "امانت %s: دانشجو %s، کتاب %s، وضعیت: %s",
+                    loan.getLoanId(), loan.getStudentId(), loan.getBookId(), status
+                ));
+            }
+        }
+        
+        return activeLoans;
     }
 }

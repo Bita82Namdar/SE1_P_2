@@ -61,7 +61,8 @@ public class BookService {
      * @return تعداد کل کتاب‌ها
      */
     public int getTotalBooksCount() {
-        return bookRepository.countBooks();
+        // استفاده از findAll() به جای countBooks()
+        return bookRepository.findAll().size();
     }
     
     /**
@@ -84,6 +85,7 @@ public class BookService {
      * @return تعداد کتاب‌های امانت داده شده
      */
     public int getBorrowedBooksCount() {
+        // محاسبه بر اساس تفاوت
         return getTotalBooksCount() - getAvailableBooksCount();
     }
     
