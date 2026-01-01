@@ -1,75 +1,117 @@
 package com.university.library.model;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 
 public class Loan {
     private String loanId;
-    private String bookId;
     private String studentId;
+    private String bookId;
     private String employeeId;
     private LocalDate requestDate;
     private LocalDate startDate;
     private LocalDate endDate;
     private LocalDate actualReturnDate;
     private LoanStatus status;
+    private boolean isReturned;
 
-    public Loan(String loanId, String bookId, String studentId, String employeeId, 
-                LocalDate requestDate, LocalDate startDate, LocalDate endDate) {
+    public Loan(String loanId, String studentId, String bookId, String employeeId, 
+                LocalDate startDate, LocalDate endDate) {
         this.loanId = loanId;
-        this.bookId = bookId;
         this.studentId = studentId;
+        this.bookId = bookId;
+        this.employeeId = employeeId;
+        this.requestDate = LocalDate.now();
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.status = LoanStatus.REQUESTED;
+        this.isReturned = false;
+    }
+
+    // Constructor کامل
+    public Loan(String loanId, String studentId, String bookId, String employeeId,
+                LocalDate requestDate, LocalDate startDate, LocalDate endDate,
+                LocalDate actualReturnDate, LoanStatus status) {
+        this.loanId = loanId;
+        this.studentId = studentId;
+        this.bookId = bookId;
         this.employeeId = employeeId;
         this.requestDate = requestDate;
         this.startDate = startDate;
         this.endDate = endDate;
-        this.status = LoanStatus.REQUESTED;
+        this.actualReturnDate = actualReturnDate;
+        this.status = status;
+        this.isReturned = (status == LoanStatus.RETURNED);
     }
 
-    // Getters and Setters
+    // Getter methods
     public String getLoanId() { return loanId; }
-    public void setLoanId(String loanId) { this.loanId = loanId; }
-    
-    public String getBookId() { return bookId; }
-    public void setBookId(String bookId) { this.bookId = bookId; }
-    
     public String getStudentId() { return studentId; }
-    public void setStudentId(String studentId) { this.studentId = studentId; }
-    
+    public String getBookId() { return bookId; }
     public String getEmployeeId() { return employeeId; }
-    public void setEmployeeId(String employeeId) { this.employeeId = employeeId; }
-    
     public LocalDate getRequestDate() { return requestDate; }
-    public void setRequestDate(LocalDate requestDate) { this.requestDate = requestDate; }
-    
     public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-    
     public LocalDate getEndDate() { return endDate; }
-    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
-    
     public LocalDate getActualReturnDate() { return actualReturnDate; }
-    public void setActualReturnDate(LocalDate actualReturnDate) { this.actualReturnDate = actualReturnDate; }
-    
     public LoanStatus getStatus() { return status; }
-    public void setStatus(LoanStatus status) { this.status = status; }
+    public boolean isReturned() { return isReturned; }
 
+    // Setter methods
+    public void setLoanId(String loanId) { this.loanId = loanId; }
+    public void setStudentId(String studentId) { this.studentId = studentId; }
+    public void setBookId(String bookId) { this.bookId = bookId; }
+    public void setEmployeeId(String employeeId) { this.employeeId = employeeId; }
+    public void setRequestDate(LocalDate requestDate) { this.requestDate = requestDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    public void setActualReturnDate(LocalDate actualReturnDate) { 
+        this.actualReturnDate = actualReturnDate; 
+    }
+    public void setStatus(LoanStatus status) { 
+        this.status = status; 
+        this.isReturned = (status == LoanStatus.RETURNED);
+    }
+    public void setReturned(boolean returned) { 
+        this.isReturned = returned; 
+        if (returned) {
+            this.status = LoanStatus.RETURNED;
+            this.actualReturnDate = LocalDate.now();
+        }
+    }
+
+    // متدهای کمکی
     public boolean isOverdue() {
-        if (actualReturnDate != null) {
-            return actualReturnDate.isAfter(endDate);
-        }
-        return LocalDate.now().isAfter(endDate);
+        return !isReturned && LocalDate.now().isAfter(endDate);
     }
 
-    public long getOverdueDays() {
-        if (isOverdue()) {
-            LocalDate comparisonDate = actualReturnDate != null ? actualReturnDate : LocalDate.now();
-            return ChronoUnit.DAYS.between(endDate, comparisonDate);
-        }
-        return 0;
+    public long getDaysOverdue() {
+        if (!isOverdue()) return 0;
+        return LocalDate.now().toEpochDay() - endDate.toEpochDay();
     }
-}
 
-enum LoanStatus {
-    REQUESTED, APPROVED, BORROWED, RETURNED, REJECTED
+    public void approve(String employeeId) {
+        this.employeeId = employeeId;
+        this.status = LoanStatus.APPROVED;
+    }
+
+    public void borrow() {
+        this.status = LoanStatus.BORROWED;
+    }
+
+    public void returnBook() {
+        this.status = LoanStatus.RETURNED;
+        this.actualReturnDate = LocalDate.now();
+        this.isReturned = true;
+    }
+
+    public void markOverdue() {
+        if (!isReturned && LocalDate.now().isAfter(endDate)) {
+            this.status = LoanStatus.OVERDUE;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Loan{id='%s', student='%s', book='%s', status=%s}", 
+                loanId, studentId, bookId, status);
+    }
 }

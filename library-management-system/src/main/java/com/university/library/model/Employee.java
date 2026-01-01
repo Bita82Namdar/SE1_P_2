@@ -1,34 +1,57 @@
 package com.university.library.model;
 
-public class Employee extends User {
-    private String employeeId;
-    private String fullName;
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "employees")
+public class Employee {
     
-    // constructor با 5 پارامتر
-    public Employee(String userId, String username, String password,
-                    String fullName, String employeeId) {
-        super(userId, username, password, "", UserType.EMPLOYEE); // email خالی
-        this.employeeId = employeeId;
-        this.fullName = fullName;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private String firstName;
+    private String lastName;
+    private String username;
+    private String password;
+    private String email;
+    private String role; // ADMIN, LIBRARIAN, etc.
+    private boolean active = true;
+    
+    // Constructors
+    public Employee() {}
+    
+    public Employee(String firstName, String lastName, String username, String password, String email, String role) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.username = username;
+        this.password = password;
+        this.email = email;
+        this.role = role;
     }
     
-    // constructor با 6 پارامتر
-    public Employee(String userId, String username, String password,
-                    String fullName, String employeeId, String email) {
-        super(userId, username, password, email, UserType.EMPLOYEE);
-        this.employeeId = employeeId;
-        this.fullName = fullName;
-    }
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     
-    public String getEmployeeId() { return employeeId; }
-    public void setEmployeeId(String employeeId) { this.employeeId = employeeId; }
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
     
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
     
-    @Override
-    public String toString() {
-        return String.format("Employee{id='%s', username='%s', name='%s', active=%s}", 
-                employeeId, getUsername(), fullName, isActive());
-    }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+    
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+    
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 }
